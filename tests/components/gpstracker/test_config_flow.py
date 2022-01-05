@@ -8,6 +8,8 @@ from homeassistant.components.gpstracker.const import DOMAIN
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import RESULT_TYPE_CREATE_ENTRY, RESULT_TYPE_FORM
 
+from .const import TEST_CONF
+
 
 async def test_form(hass: HomeAssistant) -> None:
     """Test we get the form."""
@@ -26,21 +28,13 @@ async def test_form(hass: HomeAssistant) -> None:
     ) as mock_setup_entry:
         result2 = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            {
-                "api_url": "https://labs.invoxia.io/",
-                "username": "test-username",
-                "password": "test-password",
-            },
+            TEST_CONF,
         )
         await hass.async_block_till_done()
 
     assert result2["type"] == RESULT_TYPE_CREATE_ENTRY
     assert result2["title"] == "test-username"
-    assert result2["data"] == {
-        "api_url": "https://labs.invoxia.io/",
-        "username": "test-username",
-        "password": "test-password",
-    }
+    assert result2["data"] == TEST_CONF
     assert len(mock_setup_entry.mock_calls) == 1
 
 
@@ -56,11 +50,7 @@ async def test_form_invalid_auth(hass: HomeAssistant) -> None:
     ):
         result2 = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            {
-                "api_url": "https://labs.invoxia.io",
-                "username": "test-username",
-                "password": "test-password",
-            },
+            TEST_CONF,
         )
 
     assert result2["type"] == RESULT_TYPE_FORM
@@ -79,12 +69,27 @@ async def test_form_cannot_connect(hass: HomeAssistant) -> None:
     ):
         result2 = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            {
-                "api_url": "https://labs.invoxia.io",
-                "username": "test-username",
-                "password": "test-password",
-            },
+            TEST_CONF,
         )
 
     assert result2["type"] == RESULT_TYPE_FORM
     assert result2["errors"] == {"base": "cannot_connect"}
+
+
+async def test_unknown_exception(hass: HomeAssistant) -> None:
+    """Test we handle cannot connect error."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    with patch(
+        "gps_tracker.client.asynchronous.AsyncClient.get_devices",
+        side_effect=Exception,
+    ):
+        result2 = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            TEST_CONF,
+        )
+
+    assert result2["type"] == RESULT_TYPE_FORM
+    assert result2["errors"] == {"base": "unknown"}

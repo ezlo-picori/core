@@ -5,7 +5,7 @@ import attr as attrs
 import gps_tracker
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_EXTERNAL_URL, CONF_PASSWORD, CONF_USERNAME
+from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
@@ -24,7 +24,6 @@ class GpsTrackerDomain:
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up GPS Tracker from a config entry."""
     config = gps_tracker.Config(  # type: ignore[call-arg]
-        api_url=entry.data.get(CONF_EXTERNAL_URL),
         password=entry.data.get(CONF_PASSWORD),
         username=entry.data.get(CONF_USERNAME),
     )

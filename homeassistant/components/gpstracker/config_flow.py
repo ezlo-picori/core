@@ -9,7 +9,7 @@ import gps_tracker
 import voluptuous as vol
 
 from homeassistant import config_entries
-from homeassistant.const import CONF_EXTERNAL_URL, CONF_PASSWORD, CONF_USERNAME
+from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
@@ -21,9 +21,6 @@ _LOGGER = logging.getLogger(__name__)
 # TODO adjust the data schema to the data that you need
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
-        vol.Required(
-            CONF_EXTERNAL_URL, default=gps_tracker.Config.default_api_url()
-        ): str,
         vol.Required(CONF_USERNAME): str,
         vol.Required(CONF_PASSWORD): str,
     }
@@ -36,7 +33,6 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> None:
     Data has the keys from STEP_USER_DATA_SCHEMA with values provided by the user.
     """
     cfg = gps_tracker.Config(  # type: ignore[call-arg]
-        api_url=data[CONF_EXTERNAL_URL],
         password=data[CONF_PASSWORD],
         username=data[CONF_USERNAME],
     )
@@ -71,9 +67,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         try:
             await validate_input(self.hass, user_input)
-            await self.async_set_unique_id(
-                f"{user_input[CONF_USERNAME]}@{user_input[CONF_EXTERNAL_URL]}"
-            )
+            await self.async_set_unique_id(user_input[CONF_USERNAME].lower())
             self._abort_if_unique_id_configured()
         except CannotConnect:
             errors["base"] = "cannot_connect"

@@ -36,7 +36,8 @@ async def async_setup_entry(
             GpsTrackerEntity(client, tracker)
             for tracker in trackers
             if isinstance(tracker, Tracker)
-        ]
+        ],
+        update_before_add=True,
     )
 
 
@@ -94,7 +95,7 @@ class GpsTrackerEntity(TrackerEntity):
     @property
     def unique_id(self) -> str | None:
         """Define tracker unique id."""
-        return f"invoxia_{self._tracker.id}"
+        return str(self._tracker.id)
 
     @property
     def name(self) -> str | None:
