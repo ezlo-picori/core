@@ -82,8 +82,6 @@ class GpsTrackerEntity(TrackerEntity):
 
     async def async_update(self) -> None:
         """Update tracker data."""
-        if not self.enabled:
-            return
         _LOGGER.debug(f"Updating Tracker {self._tracker.id}.")
         await asyncio.gather(self._update_location(), self._update_battery())
 
