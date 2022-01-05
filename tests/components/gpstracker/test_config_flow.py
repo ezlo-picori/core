@@ -1,8 +1,9 @@
 """Test the GPS Tracker config flow."""
 from unittest.mock import patch
 
+import gps_tracker
+
 from homeassistant import config_entries
-from homeassistant.components.gpstracker.config_flow import CannotConnect, InvalidAuth
 from homeassistant.components.gpstracker.const import DOMAIN
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import RESULT_TYPE_CREATE_ENTRY, RESULT_TYPE_FORM
@@ -17,8 +18,8 @@ async def test_form(hass: HomeAssistant) -> None:
     assert result["errors"] is None
 
     with patch(
-        "homeassistant.components.gpstracker.config_flow.PlaceholderHub.authenticate",
-        return_value=True,
+        "gps_tracker.client.asynchronous.AsyncClient.get_devices",
+        return_value=[],
     ), patch(
         "homeassistant.components.gpstracker.async_setup_entry",
         return_value=True,
@@ -26,7 +27,7 @@ async def test_form(hass: HomeAssistant) -> None:
         result2 = await hass.config_entries.flow.async_configure(
             result["flow_id"],
             {
-                "host": "1.1.1.1",
+                "api_url": "https://labs.invoxia.io/",
                 "username": "test-username",
                 "password": "test-password",
             },
@@ -34,9 +35,9 @@ async def test_form(hass: HomeAssistant) -> None:
         await hass.async_block_till_done()
 
     assert result2["type"] == RESULT_TYPE_CREATE_ENTRY
-    assert result2["title"] == "Name of the device"
+    assert result2["title"] == "test-username"
     assert result2["data"] == {
-        "host": "1.1.1.1",
+        "api_url": "https://labs.invoxia.io/",
         "username": "test-username",
         "password": "test-password",
     }
@@ -50,13 +51,13 @@ async def test_form_invalid_auth(hass: HomeAssistant) -> None:
     )
 
     with patch(
-        "homeassistant.components.gpstracker.config_flow.PlaceholderHub.authenticate",
-        side_effect=InvalidAuth,
+        "gps_tracker.client.asynchronous.AsyncClient.get_devices",
+        side_effect=gps_tracker.client.exceptions.UnauthorizedQuery,
     ):
         result2 = await hass.config_entries.flow.async_configure(
             result["flow_id"],
             {
-                "host": "1.1.1.1",
+                "api_url": "https://labs.invoxia.io",
                 "username": "test-username",
                 "password": "test-password",
             },
@@ -73,13 +74,13 @@ async def test_form_cannot_connect(hass: HomeAssistant) -> None:
     )
 
     with patch(
-        "homeassistant.components.gpstracker.config_flow.PlaceholderHub.authenticate",
-        side_effect=CannotConnect,
+        "gps_tracker.client.asynchronous.AsyncClient.get_devices",
+        side_effect=gps_tracker.client.exceptions.ForbiddenQuery,
     ):
         result2 = await hass.config_entries.flow.async_configure(
             result["flow_id"],
             {
-                "host": "1.1.1.1",
+                "api_url": "https://labs.invoxia.io",
                 "username": "test-username",
                 "password": "test-password",
             },
