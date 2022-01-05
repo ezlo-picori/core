@@ -121,6 +121,7 @@ FLOWS = [
     "goodwe",
     "google_travel_time",
     "gpslogger",
+    "gpstracker",
     "gree",
     "growatt_server",
     "guardian",

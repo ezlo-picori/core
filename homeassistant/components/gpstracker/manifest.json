@@ -1,0 +1,17 @@
+{
+  "domain": "gpstracker",
+  "name": "GPS Tracker",
+  "config_flow": true,
+  "documentation": "https://www.home-assistant.io/integrations/gpstracker",
+  "requirements": [
+    "gps-tracker==0.4.0"
+  ],
+  "ssdp": [],
+  "zeroconf": [],
+  "homekit": {},
+  "dependencies": [],
+  "codeowners": [
+    "@ezlo-picori"
+  ],
+  "iot_class": "cloud_polling"
+}
