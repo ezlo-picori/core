@@ -35,7 +35,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> None:
 
     Data has the keys from STEP_USER_DATA_SCHEMA with values provided by the user.
     """
-    cfg = gps_tracker.Config(
+    cfg = gps_tracker.Config(  # type: ignore[call-arg]
         api_url=data[CONF_EXTERNAL_URL],
         password=data[CONF_PASSWORD],
         username=data[CONF_USERNAME],

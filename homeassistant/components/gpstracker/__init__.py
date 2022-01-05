@@ -23,10 +23,10 @@ class GpsTrackerDomain:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up GPS Tracker from a config entry."""
-    config = gps_tracker.Config(
-        api_url=entry.data.get(CONF_EXTERNAL_URL),  # type: ignore
-        password=entry.data.get(CONF_PASSWORD),  # type: ignore
-        username=entry.data.get(CONF_USERNAME),  # type: ignore
+    config = gps_tracker.Config(  # type: ignore[call-arg]
+        api_url=entry.data.get(CONF_EXTERNAL_URL),
+        password=entry.data.get(CONF_PASSWORD),
+        username=entry.data.get(CONF_USERNAME),
     )
 
     client = gps_tracker.AsyncClient(config)
