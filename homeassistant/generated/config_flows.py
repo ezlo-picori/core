@@ -167,6 +167,7 @@ FLOWS = {
         "ifttt",
         "insteon",
         "intellifire",
+        "invoxia",
         "ios",
         "iotawatt",
         "ipma",
