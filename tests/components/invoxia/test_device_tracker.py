@@ -73,7 +73,7 @@ async def test_device_tracker_add_entities(
         "gps_tracker.client.asynchronous.AsyncClient.get_locations",
         return_value=tracker_data,
     ):
-        await entity.async_update_ha_state(True)
+        await entity.coordinator.async_refresh()
         await hass.async_block_till_done()
 
     assert not entity.available

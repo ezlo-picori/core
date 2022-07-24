@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from datetime import timedelta
 import logging
 
 from gps_tracker.client.datatypes import TrackerIcon
@@ -9,6 +10,8 @@ from gps_tracker.client.datatypes import TrackerIcon
 ATTRIBUTION = "Data provided by an unofficial client for Invoxia API."
 
 CLIENT = "client"
+
+DATA_UPDATE_INTERVAL = timedelta(seconds=240)
 
 DOMAIN = "invoxia"
 

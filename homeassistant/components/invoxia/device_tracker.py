@@ -2,24 +2,23 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import timedelta
-import uuid
 
-import gps_tracker
 from gps_tracker import AsyncClient, Tracker
-from gps_tracker.client.datatypes import Tracker01, TrackerStatus
+from gps_tracker.client.datatypes import Tracker01
 
 from homeassistant.components.device_tracker.config_entry import TrackerEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_ENTITIES
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import ATTRIBUTION, CLIENT, DOMAIN, LOGGER, MDI_ICONS
+from .coordinator import GpsTrackerCoordinator
+from .helpers import GpsTrackerData
 
 PARALLEL_UPDATES = 1
-SCAN_INTERVAL = timedelta(seconds=240)
 
 
 async def async_setup_entry(
@@ -31,29 +30,48 @@ async def async_setup_entry(
     client: AsyncClient = hass.data[DOMAIN][entry.entry_id][CLIENT]
     trackers: list[Tracker] = await client.get_trackers()
 
-    entities = [GpsTrackerEntity(client, tracker) for tracker in trackers]
+    coordinators = [
+        GpsTrackerCoordinator(hass, client, tracker) for tracker in trackers
+    ]
+
+    await asyncio.gather(
+        *[
+            coordinator.async_config_entry_first_refresh()
+            for coordinator in coordinators
+        ]
+    )
+
+    entities = [
+        GpsTrackerEntity(coordinator, client, tracker)
+        for tracker, coordinator in zip(trackers, coordinators)
+    ]
+
     hass.data[DOMAIN][entry.entry_id][CONF_ENTITIES].extend(entities)
     async_add_entities(entities, update_before_add=True)
 
 
-class GpsTrackerEntity(TrackerEntity):
+class GpsTrackerEntity(CoordinatorEntity[GpsTrackerCoordinator], TrackerEntity):
     """Class for Invoxia™ GPS tracker devices."""
 
     _attr_attribution = ATTRIBUTION
+    _attr_should_poll = False
 
-    def __init__(self, client: AsyncClient, tracker: Tracker) -> None:
+    def __init__(
+        self, coordinator: GpsTrackerCoordinator, client: AsyncClient, tracker: Tracker
+    ) -> None:
         """Store tracker main properties."""
-        super().__init__()
+        super().__init__(coordinator)
 
         # Attributes for update logic
         self._client: AsyncClient = client
         self._tracker: Tracker = tracker
 
         # Static entity attributes
-        self._attr_should_poll = True
         if isinstance(tracker, Tracker01):
             self._attr_icon = MDI_ICONS[tracker.tracker_config.icon]
-            self._attr_device_info = self._form_device_info(tracker)  # type:ignore
+            self._attr_device_info = self._form_device_info(
+                tracker
+            )  # type:ignore[assignment]
             self._attr_name = self._tracker.name
             self._attr_unique_id = str(self._tracker.id)
 
@@ -61,49 +79,28 @@ class GpsTrackerEntity(TrackerEntity):
         self._attr_available: bool = True
 
         # Dynamic tracker-entity attributes
-        self._battery: int = 0
-        self._accuracy: int = 0
-        self._latitude: float = 0.0
-        self._longitude: float = 0.0
-        self._last_uuid: uuid.UUID = uuid.uuid4()
-
-    async def _update_location(self) -> None:
-        """Update tracker location."""
-        locations = await self._client.get_locations(self._tracker, max_count=1)
-        if locations[0].uuid != self._last_uuid:
-            self._latitude = locations[0].lat
-            self._longitude = locations[0].lng
-            self._accuracy = locations[0].precision
-
-    async def _update_battery(self) -> None:
-        """Update tracker battery level."""
-        tracker_status: TrackerStatus = await self._client.get_tracker_status(
-            self._tracker
+        self._tracker_data = GpsTrackerData(
+            latitude=0.0,
+            longitude=0.0,
+            accuracy=0,
+            battery=0,
         )
-        self._battery = tracker_status.battery
+        self._update_attr()
 
-    async def async_update(self) -> None:
-        """Update tracker data."""
-        if not self.enabled:
-            return
+    def _update_attr(self) -> None:
+        """Update dynamic attributes."""
+        LOGGER.debug("Updating attributes of Tracker %u", self._tracker.id)
+        self._tracker_data = self.coordinator.data
 
-        try:
-            await asyncio.gather(self._update_location(), self._update_battery())
-            if not self.available:
-                LOGGER.info(
-                    "Update of '{self.name}' successful, connection or API errors are resolved"
-                )
-                self._attr_available = True
-        except gps_tracker.client.exceptions.GpsTrackerException:
-            LOGGER.warning(
-                "Could not update '{self.name}' due to connection or API errors"
-            )
-            self._attr_available = False
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        self._update_attr()
+        return super()._handle_coordinator_update()
 
     @property
     def battery_level(self) -> int | None:
         """Return tracker battery level."""
-        return self._battery
+        return self._tracker_data.battery
 
     @property
     def source_type(self) -> str:
@@ -113,17 +110,17 @@ class GpsTrackerEntity(TrackerEntity):
     @property
     def location_accuracy(self) -> int:
         """Return accuration of last location data."""
-        return self._accuracy
+        return self._tracker_data.accuracy
 
     @property
     def latitude(self) -> float | None:
         """Return last device latitude."""
-        return self._latitude
+        return self._tracker_data.latitude
 
     @property
     def longitude(self) -> float | None:
         """Return last device longitude."""
-        return self._longitude
+        return self._tracker_data.longitude
 
     @staticmethod
     def _form_device_info(tracker: Tracker01) -> DeviceInfo:

@@ -756,7 +756,7 @@ goslide-api==0.5.1
 gpiozero==1.6.2
 
 # homeassistant.components.invoxia
-gps-tracker==0.7.1
+gps-tracker==0.8.0
 
 # homeassistant.components.gpsd
 gps3==0.33.3

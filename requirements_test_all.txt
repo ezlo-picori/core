@@ -544,7 +544,7 @@ google-nest-sdm==2.0.0
 googlemaps==2.5.1
 
 # homeassistant.components.invoxia
-gps-tracker==0.7.1
+gps-tracker==0.8.0
 
 # homeassistant.components.gree
 greeclimate==1.2.0
